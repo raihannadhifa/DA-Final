@@ -45,6 +45,8 @@ The data is mixed type data (i.e. both categorical and continuous values). Eucli
 
 Gower distance is computed as the average of partial dissimilarities across individuals. Each partial dissimilarity (and thus Gower distance) ranges in [0 1].
 
+To calculated this distance, we use cluster::daisy() instead of stats::dist()
+
 
 # Data Cleaning 
 To work with the data we need to alter some variables and add a few new variables based on the existing ones. 
@@ -182,8 +184,7 @@ ggplot(data = data_12var,
 
 # Analysis
 ## Analysis based on income, seniority, age, and amount spent.
-
-```{r, warning = FALSE}
+```{r distance_matrix, warning = FALSE}
 gower_dist2 <-
   daisy(data_12var[c("Income", "Amt_Spent", "Customer_Seniority", "Age")],
         metric = "gower")
@@ -194,13 +195,13 @@ gower_mat2 <- as.matrix(gower_dist2)
 ```
 
 ### Most similar pair
-```{r, warning = FALSE}
+```{r most_similar, warning = FALSE}
 data_12var[which(gower_mat2 == min(gower_mat2[gower_mat2 != min(gower_mat2)]),
            arr.ind = TRUE)[1,],]
 ```
 
 ### Most dissimilar pair
-```{r, warning = FALSE}
+```{r most_dissimilar, warning = FALSE}
 data_12var[which(gower_mat2 == max(gower_mat2[gower_mat2 != max(gower_mat2)]),
            arr.ind = TRUE)[1,],]
 ```
@@ -217,6 +218,7 @@ for (i in 2:10) {
   sil_width2[i] <- pam_fit2$silinfo$avg.width
   
 }
+sil_width2
 ```
 
 ```{r, warning = FALSE}
