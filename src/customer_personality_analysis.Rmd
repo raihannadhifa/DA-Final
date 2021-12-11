@@ -7,9 +7,7 @@ output:
   pdf_document: default
 ---
 
-```{r, echo = FALSE, warning = FALSE}
-rm(list = ls())
-
+```{r formatting, echo = FALSE, warning = FALSE}
 library(knitr)
 opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 ```
@@ -19,7 +17,7 @@ Customer personality analysis is a detailed analysis done by a brand or company 
 
 Customer personality analysis is done by clustering as it is an unsupervised problem. 
 
-```{r, warning = FALSE, results = FALSE}
+```{r setup, warning = FALSE, results = FALSE}
 library(dplyr)
 library(ggplot2)
 library(cluster)
@@ -27,10 +25,12 @@ library(gower)
 library(Rtsne)
 library(stringr)
 library(corrgram)
+library(scales)
 ```
 
+
 # Data 
-```{r, warning = FALSE}
+```{r read_data, warning = FALSE}
 data <- read.csv2("../data/marketing_campaign.csv", sep = "\t")
 
 sum(is.na(data))
@@ -38,12 +38,13 @@ data <- na.omit(data)
 ```
 As there are very few NA items we will just omit them.
 
-```{r, warning = FALSE}
+```{r inspect_data, warning = FALSE}
 str(data)
 ```
 The data is mixed type data (i.e. both categorical and continuous values). Euclidean distance is commonly used for clustering algorithms like KMeans and hierarchical clustering but it is useful when we only have to deal with continuous values. Thus, we will use Gower distance as the distance metric.
 
 Gower distance is computed as the average of partial dissimilarities across individuals. Each partial dissimilarity (and thus Gower distance) ranges in [0 1].
+
 
 # Data Cleaning 
 To work with the data we need to alter some variables and add a few new variables based on the existing ones. 
@@ -97,16 +98,27 @@ data$Num_Purchases_made <-
   data$NumWebPurchases + data$NumCatalogPurchases + data$NumStorePurchases
 ```
 
-8. Thus, we are left with 12 variables that can be used to create the distance matrix.
+8. test outliers. There's one observation with disproportionately large Income 666666, we estimate this to be an outlier. 
 ```{r, warning = FALSE}
-data <- data[c(1, 30, 3, 4, 5, 33, 32, 9, 34, 35, 16, 20)]
+ggplot(data = data, aes(x=Income)) +
+  geom_boxplot()
+data[data$Income>4e05,'Income']
 ```
+
+9. Thus, we are left with 12 variables that can be used to create the distance matrix.
+```{r, warning = FALSE}
+data_12var <- data[c(1, 30, 3, 4, 5, 33, 32, 9, 34, 35, 16, 20)] %>% 
+  tibble() %>% 
+  filter(Income < 4e05)
+```
+
+
 
 # Exploratory Data Analysis
 ## Corrgram 
 
-```{r, warning = FALSE}
-data2 <- data
+```{r corrgram, warning = FALSE}
+data2 <- data_12var
 data2$Education <- unclass(as.factor(data2$Education))
 data2$Marital_Status <- unclass(as.factor(data2$Marital_Status))
 data2$Education <- as.numeric(data2$Education)
@@ -123,49 +135,49 @@ corrgram(
 
 Strong Correlation between Income, Amount Spent and Purchase, as well as slight trend between Education and Income (PG: 1, UG: 2) tells us that people with higher studies earn more.
 
+## Statistics of variables
 1. Age
-```{r, warning = FALSE}
-age_plot <- ggplot(data = data, aes(Age))
-age_plot + geom_density()
+```{r age_distribution, warning = FALSE}
+ggplot(data = data_12var, aes(Age)) +
+  geom_density()
 ```
 
 2. Education 
-```{r, warning = FALSE}
-edu_plot1 <- ggplot(data = data, aes(Education))
-edu_plot1 + geom_histogram(stat = "count")
+```{r education_distribution, warning = FALSE}
+ggplot(data = data_12var, aes(Education)) +
+  geom_histogram(stat = "count")
 ```
 
-```{r, warning = FALSE}
-edu_plot2 <- ggplot(data = data, aes(Age, fill = Education))
-edu_plot2 + geom_histogram() 
+```{r age_distribution_by_education, warning = FALSE}
+ggplot(data = data_12var, aes(Age, fill = Education)) + 
+  geom_histogram()
 ```
 
 3. Marital Status 
-```{r, warning = FALSE}
-marital_plot <-
-  ggplot(data = data, aes(Marital_Status, fill = Marital_Status))
-marital_plot + geom_histogram(stat = "count")
+```{r marital_status_distribution, warning = FALSE}
+ggplot(data = data_12var, aes(Marital_Status, fill = Marital_Status)) +
+  geom_histogram(stat = "count")
 ```
 
-4. Income & Amount Spent 
-```{r, warning = FALSE}
-require(scales)
-inc_plt <- ggplot(data = data, aes(Income, Amt_Spent))
-inc_plt + geom_point(alpha = 0.5, color = "blue") + scale_x_continuous(labels = comma)
+4. Income & Amount Spent
+The total amount spent seems to be linear related to the square of Income
+```{r income_spent_relationship, warning = FALSE}
+ggplot(data = data_12var, aes(Income^2, Amt_Spent)) +
+  geom_point(alpha = 0.5, color = "blue") + 
+  scale_x_continuous(labels = comma)
 ```
 
 5. Child 
-```{r, warning = FALSE}
-a <- ggplot(data = data,  aes(Child, fill = Marital_Status))
-a + geom_histogram(position = "dodge")
+```{r child_distribution_by_marital, warning = FALSE}
+ggplot(data = data_12var,  aes(Child, fill = Marital_Status)) + 
+  geom_histogram(position = "dodge")
 ```
 
 6. Customer Seniority & Amount Spent 
-```{r, warning = FALSE}
-cust_plt <-
-  ggplot(data = data, aes(as.factor(Customer_Seniority), Amt_Spent, fill = Customer_Seniority))
-
-cust_plt + geom_boxplot(color = "black")
+```{r spend_distribution_by_seniority, warning = FALSE}
+ggplot(data = data_12var, 
+       aes(as.factor(Customer_Seniority), Amt_Spent, fill = Customer_Seniority)) + 
+  geom_boxplot(color = "black")
 ```
 
 # Analysis
@@ -173,7 +185,7 @@ cust_plt + geom_boxplot(color = "black")
 
 ```{r, warning = FALSE}
 gower_dist2 <-
-  daisy(data[c("Income", "Amt_Spent", "Customer_Seniority", "Age")],
+  daisy(data_12var[c("Income", "Amt_Spent", "Customer_Seniority", "Age")],
         metric = "gower")
 
 summary(gower_dist2)
@@ -183,13 +195,13 @@ gower_mat2 <- as.matrix(gower_dist2)
 
 ### Most similar pair
 ```{r, warning = FALSE}
-data[which(gower_mat2 == min(gower_mat2[gower_mat2 != min(gower_mat2)]),
+data_12var[which(gower_mat2 == min(gower_mat2[gower_mat2 != min(gower_mat2)]),
            arr.ind = TRUE)[1,],]
 ```
 
 ### Most dissimilar pair
 ```{r, warning = FALSE}
-data[which(gower_mat2 == max(gower_mat2[gower_mat2 != max(gower_mat2)]),
+data_12var[which(gower_mat2 == max(gower_mat2[gower_mat2 != max(gower_mat2)]),
            arr.ind = TRUE)[1,],]
 ```
 
@@ -220,7 +232,7 @@ By silhouette method we can choose 4 clusters.
 ```{r, warning = FALSE}
 pam_fit2 <- pam(gower_dist2, diss = TRUE, k = 4)
 
-pam_results2 <- data %>%
+pam_results2 <- data_12var %>%
   dplyr::select(
     -c(
       ID,
@@ -253,7 +265,7 @@ tsne_data2 <- tsne_obj2$Y %>%
   data.frame() %>%
   setNames(c("X", "Y")) %>%
   mutate(cluster = factor(pam_fit2$clustering),
-         name = data$ID)
+         name = data_12var$ID)
 
 ggplot(aes(x = X, y = Y), data = tsne_data2) +
   geom_point(aes(color = cluster))
@@ -261,7 +273,7 @@ ggplot(aes(x = X, y = Y), data = tsne_data2) +
 
 ## Analysis based on item purchased, amount spent, number of child, and marital status.
 ```{r, warning = FALSE}
-data2 <- data
+data2 <- data_12var
 
 data2$Education <- unclass(as.factor(data2$Education))
 
