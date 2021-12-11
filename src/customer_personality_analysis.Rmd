@@ -1,7 +1,6 @@
 ---
 title: "Customer Personality Analysis"
 author: "Group 7 - Isaac Yang, Pengxiang Chen, Raihan Putra, Zhiqi Rui"
-date: "2021-12-09"
 output:
   html_document: default
   pdf_document: default
@@ -28,10 +27,17 @@ library(corrgram)
 library(scales)
 ```
 
+# Initial Hypothesis
+Here are some initial hypothesis of what this dataset could answer:
+1. Does age and education level matter to the customer's shopping preferences?
+2. Does customer buy more products the longer they associated with the company?
+3. Does marital status and number of kids matter on the customer's shopping behavior?
 
-# Data 
+We will try to find the answer to this hypothesis by doing analysis on the dataset.
+
+# Dataset
 ```{r read_data, warning = FALSE}
-data <- read.csv2("../data/marketing_campaign.csv", sep = "\t")
+data <- read.csv2("marketing_campaign.csv", sep = "\t")
 
 sum(is.na(data))
 data <- na.omit(data)
@@ -43,12 +49,9 @@ str(data)
 ```
 The data is mixed type data (i.e. both categorical and continuous values). Euclidean distance is commonly used for clustering algorithms like KMeans and hierarchical clustering but it is useful when we only have to deal with continuous values. Thus, we will use Gower distance as the distance metric.
 
-Gower distance is computed as the average of partial dissimilarities across individuals. Each partial dissimilarity (and thus Gower distance) ranges in [0 1].
+Gower distance is computed as the average of partial dissimilarities across individuals. Each partial dissimilarity (and thus Gower distance) ranges in [0 1]. To calculate this distance, we use cluster::daisy() instead of stats::dist().
 
-To calculated this distance, we use cluster::daisy() instead of stats::dist()
-
-
-# Data Cleaning 
+## Data Cleaning
 To work with the data we need to alter some variables and add a few new variables based on the existing ones. 
 
 1. Year_Birth, changing it to the Age variable.
@@ -114,11 +117,8 @@ data_12var <- data[c(1, 30, 3, 4, 5, 33, 32, 9, 34, 35, 16, 20)] %>%
   filter(Income < 4e05)
 ```
 
-
-
 # Exploratory Data Analysis
 ## Corrgram 
-
 ```{r corrgram, warning = FALSE}
 data2 <- data_12var
 data2$Education <- unclass(as.factor(data2$Education))
@@ -137,7 +137,7 @@ corrgram(
 
 Strong Correlation between Income, Amount Spent and Purchase, as well as slight trend between Education and Income (PG: 1, UG: 2) tells us that people with higher studies earn more.
 
-## Statistics of variables
+## Charts
 1. Age
 ```{r age_distribution, warning = FALSE}
 ggplot(data = data_12var, aes(Age)) +
@@ -183,7 +183,7 @@ ggplot(data = data_12var,
 ```
 
 # Analysis
-## Analysis based on income, seniority, age, and amount spent.
+## Analysis based on income, seniority, age, and amount spent
 ```{r distance_matrix, warning = FALSE}
 gower_dist2 <-
   daisy(data_12var[c("Income", "Amt_Spent", "Customer_Seniority", "Age")],
@@ -252,10 +252,11 @@ pam_results2 <- data_12var %>%
 
 pam_results2$the_summary
 ```
+
 We can interpret from the cluster summary that 4 types of customers here are: 
 
 * Cluster 1: Avg Income | Senior Customers | Spending Avg Amount
-* Cluster 2: Avg Income | New Customers | Avg Spending less than Cluster 1 customers
+* Cluster 2: Avg Income | New Customers | Avg Spending less than Cluster 1 Customers
 * Cluster 3: High Income | Fairly Senior Customers | High Avg Spending 
 * Cluster 4: Below Avg Income | Fairly Senior Customers | Low Avg Spending 
 
@@ -273,16 +274,13 @@ ggplot(aes(x = X, y = Y), data = tsne_data2) +
   geom_point(aes(color = cluster))
 ```
 
-## Analysis based on item purchased, amount spent, number of child, and marital status.
+## Analysis based on item purchased, amount spent, number of child, and marital status
 ```{r, warning = FALSE}
 data2 <- data_12var
 
 data2$Education <- unclass(as.factor(data2$Education))
-
 data2$Marital_Status <- unclass(as.factor(data2$Marital_Status))
-
 data2$Education <- as.numeric(data2$Education)
-
 data2$Marital_Status <- as.numeric(data2$Marital_Status)
 
 data_new <- read.csv2("../data/marketing_campaign.csv", sep = "\t")
@@ -370,6 +368,7 @@ pam_results3 <- data3 %>%
 
 pam_results3$the_summary
 ```
+
 We can interpret from the cluster summary that 3 types of customers here are: 
 
 * Cluster 1: Couple or Not Single people | More Post Graduates | Higher than Avg Income | Highest Buyer of Wine & Meat | Gold Purchase also Above Avg | Overall Purchase and Amount Spent also Highest 
