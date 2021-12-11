@@ -1,6 +1,7 @@
 ---
 title: "Customer Personality Analysis"
 author: "Group 7 - Isaac Yang, Pengxiang Chen, Raihan Putra, Zhiqi Rui"
+date: "12/09/2021"
 output:
   html_document: default
   pdf_document: default
