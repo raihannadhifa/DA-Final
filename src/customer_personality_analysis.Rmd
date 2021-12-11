@@ -31,7 +31,7 @@ library(corrgram)
 
 # Data 
 ```{r, warning = FALSE}
-data <- read.csv2("marketing_campaign.csv", sep = "\t")
+data <- read.csv2("../data/marketing_campaign.csv", sep = "\t")
 
 sum(is.na(data))
 data <- na.omit(data)
@@ -45,7 +45,7 @@ The data is mixed type data (i.e. both categorical and continuous values). Eucli
 
 Gower distance is computed as the average of partial dissimilarities across individuals. Each partial dissimilarity (and thus Gower distance) ranges in [0 1].
 
-## Data Cleaning 
+# Data Cleaning 
 To work with the data we need to alter some variables and add a few new variables based on the existing ones. 
 
 1. Year_Birth, changing it to the Age variable.
@@ -271,7 +271,7 @@ data2$Education <- as.numeric(data2$Education)
 
 data2$Marital_Status <- as.numeric(data2$Marital_Status)
 
-data_new <- read.csv2("marketing_campaign.csv", sep = "\t")
+data_new <- read.csv2("../data/marketing_campaign.csv", sep = "\t")
 data_new <- na.omit(data_new)
 
 data3 <- data2
