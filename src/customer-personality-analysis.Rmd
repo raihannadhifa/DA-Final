@@ -1,23 +1,24 @@
 ---
 title: "Customer Personality Analysis"
-author: "Aashay Sharma"
-date: "16/11/2021"
+author: "Group 7 - Isaac Yang, Pengxiang Chen, Raihan Putra, Zhiqi Rui"
 output:
   html_document: default
   pdf_document: default
 ---
 
-```{r, echo=FALSE, warning=FALSE}
+```{r, echo = FALSE, warning = FALSE}
+rm(list = ls())
+
 library(knitr)
-opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
 ```
 
 # Introduction 
-Customer Personality analysis is a detailed analysis done by a brand or company to find an ideal set of customers. This helps the company to make changes in their product and marketing in a more efficient way. Promoting a product to a customer who is more likely to buy the product is better than promoting it to a random person. 
+Customer personality analysis is a detailed analysis done by a brand or company to find an ideal set of customers. This helps the company to make changes in their product and marketing in a more efficient way. Promoting a product to a customer who is more likely to buy the product is better than promoting it to a random person.
 
-Customer Personality analysis is done by clustering as it is a un-supervised problem. 
+Customer personality analysis is done by clustering as it is an unsupervised problem. 
 
-```{r,warning = FALSE, results= FALSE}
+```{r, warning = FALSE, results = FALSE}
 library(dplyr)
 library(ggplot2)
 library(cluster)
@@ -29,33 +30,30 @@ library(corrgram)
 
 # Data 
 ```{r, warning = FALSE}
-data <- read.csv2("../input/customer-personality-analysis/marketing_campaign.csv", sep = "\t")
+data <- read.csv2("marketing_campaign.csv", sep = "\t")
 
 sum(is.na(data))
-
 data <- na.omit(data)
 ```
 As there are very few NA items we will just omit them.
 
-```{r, warning=FALSE}
+```{r, warning = FALSE}
 str(data)
 ```
-The data is mixed type data (ie both Categorical and Continous values). Euclidean distance is commonly used for clustering algorithms like KMeans and hierarchical clustering but it is useful when we only have to deal with continous values. Thus here we will use gower distance as the distance metric.
+The data is mixed type data (i.e. both categorical and continuous values). Euclidean distance is commonly used for clustering algorithms like KMeans and hierarchical clustering but it is useful when we only have to deal with continuous values. Thus, we will use Gower distance as the distance metric.
 
 Gower distance is computed as the average of partial dissimilarities across individuals. Each partial dissimilarity (and thus Gower distance) ranges in [0 1].
 
-# Data Cleaning 
+## Data Cleaning 
 To work with the data we need to alter some variables and add a few new variables based on the existing ones. 
 
-1. Year_Birth 
-Changing it to the Age variable 
-```{r, warning=FALSE}
+1. Year_Birth, changing it to the Age variable.
+```{r, warning = FALSE}
 data$Age <- 2014 - data$Year_Birth
 ```
 
-2. Education 
-It has too many categories this can be converted to UG and PG categories.
-```{r,warning=FALSE}
+2. Education, it has too many categories this can be converted to UG and PG categories.
+```{r, warning = FALSE}
 data$Education[data$Education == "2n Cycle"] = "UG"
 data$Education[data$Education == "Basic"] = "UG"
 data$Education[data$Education == "Graduation"] = "PG"
@@ -63,10 +61,8 @@ data$Education[data$Education == "Master"] = "PG"
 data$Education[data$Education == "PhD"] = "PG"
 ```
 
-3. Marital_Status 
-It also has many categories which can be converted to Single and Couple categories.
-
-```{r, warning=FALSE}
+3. Marital_Status, it also has many categories which can be converted to Single and Couple categories.
+```{r, warning = FALSE}
 data$Marital_Status[data$Marital_Status == "Divorced"] = "Single"
 data$Marital_Status[data$Marital_Status == "Absurd"] = "Single"
 data$Marital_Status[data$Marital_Status == "YOLO"] = "Single"
@@ -76,168 +72,180 @@ data$Marital_Status[data$Marital_Status == "Married"] = "Couple"
 data$Marital_Status[data$Marital_Status == "Alone"] = "Single"
 ```
 
-4. Dt_Customer
-The customer association date with the company can be changed to a seniority level.
-```{r,warning=FALSE}
-data$Customer_year <- str_sub(data$Dt_Customer,-4)
+4. Dt_Customer, the customer association date with the company can be changed to a seniority level.
+```{r, warning = FALSE}
+data$Customer_year <- str_sub(data$Dt_Customer, -4)
 data$Customer_year <- as.numeric(data$Customer_year)
 data$Customer_Seniority <- 2014 - data$Customer_year
 ```
 
-5. Kid home and Teen Home 
-I feel that the keed home and teen home variables can collectively define the child variable.
-
-```{r,warning=FALSE}
+5. Kidhome and Teenhome, we feel that the Kidhome and Teenhome variables can collectively define the child variable.
+```{r, warning = FALSE}
 data$Child <- data$Kidhome + data$Teenhome
 ```
 
-6. Mnt products 
-The amount spend of products can be added together to get the total amount spent which will be a more useful variable.
-
-```{r, warning=FALSE}
-data$Amt_Spent <- data$MntWines + data$MntFishProducts + data$MntFruits + data$MntGoldProds + data$MntMeatProducts + data$MntSweetProducts
+6. Mnt products, the amount spend of products can be added together to get the total amount spent which will be a more useful variable.
+```{r, warning = FALSE}
+data$Amt_Spent <-
+  data$MntWines + data$MntFishProducts + data$MntFruits + data$MntGoldProds + data$MntMeatProducts + data$MntSweetProducts
 ```
 
-7. Purchases made 
-We can get the total number of purchases by adding the different purchases variables.
-```{r, warning=FALSE}
-data$Num_Purchases_made <- data$NumWebPurchases + data$NumCatalogPurchases + data$NumStorePurchases
+7. Num_Purchases_made, we can get the total number of purchases by adding the different purchases variables.
+```{r, warning = FALSE}
+data$Num_Purchases_made <-
+  data$NumWebPurchases + data$NumCatalogPurchases + data$NumStorePurchases
 ```
 
-Thus we are left with 12 variables that can be used to create the distance matrix.
-```{r,warning=FALSE}
-data <- data[c(1,30,3,4,5,33,32,9,34,35,16,20)]
+8. Thus, we are left with 12 variables that can be used to create the distance matrix.
+```{r, warning = FALSE}
+data <- data[c(1, 30, 3, 4, 5, 33, 32, 9, 34, 35, 16, 20)]
 ```
 
-# EDA 
+# Exploratory Data Analysis
+## Corrgram 
 
-### Corrgram : 
-
-```{r,warning=FALSE}
+```{r, warning = FALSE}
 data2 <- data
 data2$Education <- unclass(as.factor(data2$Education))
 data2$Marital_Status <- unclass(as.factor(data2$Marital_Status))
 data2$Education <- as.numeric(data2$Education)
 data2$Marital_Status <- as.numeric(data2$Marital_Status)
-corrgram(data2[-c(1)], order=TRUE, lower.panel=panel.shade, upper.panel=NULL, text.panel=panel.txt, main="Customer Data")
-
+corrgram(
+  data2[-c(1)],
+  order = TRUE,
+  lower.panel = panel.shade,
+  upper.panel = NULL,
+  text.panel = panel.txt,
+  main = "Customer Data"
+)
 ```
-Strong Correlation between Income, Amount Spent and Purchase, As well as there is slight trend between Education and Income(PG:1, UG:2) so this tells us that people with higher studies earn more. 
-1. Age
 
-```{r,warning=FALSE}
+Strong Correlation between Income, Amount Spent and Purchase, as well as slight trend between Education and Income (PG: 1, UG: 2) tells us that people with higher studies earn more.
+
+1. Age
+```{r, warning = FALSE}
 age_plot <- ggplot(data = data, aes(Age))
 age_plot + geom_density()
 ```
 
 2. Education 
-```{r,warning=FALSE}
+```{r, warning = FALSE}
 edu_plot1 <- ggplot(data = data, aes(Education))
 edu_plot1 + geom_histogram(stat = "count")
 ```
 
-```{r,warning=FALSE}
-edu_plot2<- ggplot(data = data, aes(Age, fill = Education))
+```{r, warning = FALSE}
+edu_plot2 <- ggplot(data = data, aes(Age, fill = Education))
 edu_plot2 + geom_histogram() 
 ```
 
-3. Marital_Status 
-```{r,warning=FALSE}
-marital_plot <- ggplot(data = data, aes(Marital_Status, fill = Marital_Status))
+3. Marital Status 
+```{r, warning = FALSE}
+marital_plot <-
+  ggplot(data = data, aes(Marital_Status, fill = Marital_Status))
 marital_plot + geom_histogram(stat = "count")
 ```
 
 4. Income & Amount Spent 
-```{r,warning=FALSE}
+```{r, warning = FALSE}
 require(scales)
 inc_plt <- ggplot(data = data, aes(Income, Amt_Spent))
 inc_plt + geom_point(alpha = 0.5, color = "blue") + scale_x_continuous(labels = comma)
 ```
 
 5. Child 
-```{r,warning=FALSE}
+```{r, warning = FALSE}
 a <- ggplot(data = data,  aes(Child, fill = Marital_Status))
 a + geom_histogram(position = "dodge")
 ```
 
 6. Customer Seniority & Amount Spent 
 ```{r, warning = FALSE}
-cust_plt <- ggplot(data = data, aes(as.factor(Customer_Seniority), Amt_Spent, fill = Customer_Seniority))
+cust_plt <-
+  ggplot(data = data, aes(as.factor(Customer_Seniority), Amt_Spent, fill = Customer_Seniority))
 
 cust_plt + geom_boxplot(color = "black")
 ```
 
-# Customer Analysis : 
-
-## Analysing customers based on their income, seniority, age and amount spent.
+# Analysis
+## Analysis based on income, seniority, age, and amount spent.
 
 ```{r, warning = FALSE}
-gower_dist2 <- daisy(data[c("Income", "Amt_Spent", "Customer_Seniority", "Age")],
-                    metric = "gower")
+gower_dist2 <-
+  daisy(data[c("Income", "Amt_Spent", "Customer_Seniority", "Age")],
+        metric = "gower")
 
 summary(gower_dist2)
 
 gower_mat2 <- as.matrix(gower_dist2)
 ```
 
-MOST SIMILAR PAIR 
-```{r,warning=FALSE}
-data[
-  which(gower_mat2 == min(gower_mat2[gower_mat2 != min(gower_mat2)]),
-        arr.ind = TRUE)[1, ], ]
+### Most similar pair
+```{r, warning = FALSE}
+data[which(gower_mat2 == min(gower_mat2[gower_mat2 != min(gower_mat2)]),
+           arr.ind = TRUE)[1,],]
 ```
 
-MOST DISSIMILAR PAIR
-```{r, warning=FALSE}
-data[
-  which(gower_mat2 == max(gower_mat2[gower_mat2 != max(gower_mat2)]),
-        arr.ind = TRUE)[1, ], ]
+### Most dissimilar pair
+```{r, warning = FALSE}
+data[which(gower_mat2 == max(gower_mat2[gower_mat2 != max(gower_mat2)]),
+           arr.ind = TRUE)[1,],]
 ```
 
-FINDING NUMBER OF CLUSTERS 
-```{r, warning=FALSE}
+### Finding number of clusters
+```{r, warning = FALSE}
 sil_width2 <- c(NA)
 
-for(i in 2:10){
-  
+for (i in 2:10) {
   pam_fit2 <- pam(gower_dist2,
-                 diss = TRUE,
-                 k = i)
+                  diss = TRUE,
+                  k = i)
   
   sil_width2[i] <- pam_fit2$silinfo$avg.width
   
 }
 ```
 
-```{r, warning=FALSE}
+```{r, warning = FALSE}
 plot(1:10, sil_width2,
      xlab = "Number of clusters",
      ylab = "Silhouette Width")
 lines(1:10, sil_width2)
 ```
+
 By silhouette method we can choose 4 clusters.
 
-CLUSTER SUMMARY
-```{r, warning=FALSE}
+### Cluster summary
+```{r, warning = FALSE}
 pam_fit2 <- pam(gower_dist2, diss = TRUE, k = 4)
 
 pam_results2 <- data %>%
-  dplyr::select(-c(ID, Child, NumWebVisitsMonth, Num_Purchases_made, NumDealsPurchases, Education, Marital_Status)) %>%
+  dplyr::select(
+    -c(
+      ID,
+      Child,
+      NumWebVisitsMonth,
+      Num_Purchases_made,
+      NumDealsPurchases,
+      Education,
+      Marital_Status
+    )
+  ) %>%
   mutate(cluster = pam_fit2$clustering) %>%
   group_by(cluster) %>%
   do(the_summary = summary(.))
 
 pam_results2$the_summary
 ```
-We can interpret from the cluster summary that 4 types of customers here are : 
+We can interpret from the cluster summary that 4 types of customers here are: 
 
-### 1. Cluster 1 : Avg Income | Senior Customers | Spending Avg Amount 
-### 2. Cluster 2 : Avg Income | New Customers | Avg spending less than cluster 1 customers
-### 3. Cluster 3 : High Income | Fairly Senior Customers | High Avg Spending 
-### 4. Cluster 4 : Below Avg Income | Fairly Senior Customers | Low Average Spending 
+* Cluster 1: Avg Income | Senior Customers | Spending Avg Amount
+* Cluster 2: Avg Income | New Customers | Avg Spending less than Cluster 1 customers
+* Cluster 3: High Income | Fairly Senior Customers | High Avg Spending 
+* Cluster 4: Below Avg Income | Fairly Senior Customers | Low Avg Spending 
 
-VISUALISING CLUSTERS
-```{r, warning=FALSE}
+### Visualizing cluster
+```{r, warning = FALSE}
 tsne_obj2 <- Rtsne(gower_dist2, is_distance = TRUE)
 
 tsne_data2 <- tsne_obj2$Y %>%
@@ -250,10 +258,8 @@ ggplot(aes(x = X, y = Y), data = tsne_data2) +
   geom_point(aes(color = cluster))
 ```
 
-
-## Analysing customers based on Item Purchased, Amount Spent, Number of Child and Marital Status.
-
-```{r,warning=FALSE}
+## Analysis based on item purchased, amount spent, number of child, and marital status.
+```{r, warning = FALSE}
 data2 <- data
 
 data2$Education <- unclass(as.factor(data2$Education))
@@ -264,7 +270,7 @@ data2$Education <- as.numeric(data2$Education)
 
 data2$Marital_Status <- as.numeric(data2$Marital_Status)
 
-data_new <- read.csv2("../input/customer-personality-analysis/marketing_campaign.csv", sep = "\t")
+data_new <- read.csv2("marketing_campaign.csv", sep = "\t")
 data_new <- na.omit(data_new)
 
 data3 <- data2
@@ -279,53 +285,66 @@ data3$Marital_Status <- as.factor(data3$Marital_Status)
 ```
 
 ```{r, warning = FALSE}
-gower_dist3 <- daisy(data3[c("Income", "Child", "Num_Purchases_made", "Marital_Status", "AmtWines", "AmtFruits", "AmtFish", "AmtMeat", "AmtSweet", "AmtGold", "NumDealsPurchases", "Amt_Spent", "Recency")],
-                    metric = "gower")
+gower_dist3 <-
+  daisy(data3[c(
+    "Income",
+    "Child",
+    "Num_Purchases_made",
+    "Marital_Status",
+    "AmtWines",
+    "AmtFruits",
+    "AmtFish",
+    "AmtMeat",
+    "AmtSweet",
+    "AmtGold",
+    "NumDealsPurchases",
+    "Amt_Spent",
+    "Recency"
+  )],
+  metric = "gower")
 
 summary(gower_dist3)
 
 gower_mat3 <- as.matrix(gower_dist3)
 ```
 
-MOST SIMILAR PAIR 
-```{r,warning=FALSE}
-data3[
-  which(gower_mat3 == min(gower_mat3[gower_mat3 != min(gower_mat3)]),
-        arr.ind = TRUE)[1, ], ]
+### Most similar pair
+```{r, warning = FALSE}
+data3[which(gower_mat3 == min(gower_mat3[gower_mat3 != min(gower_mat3)]),
+            arr.ind = TRUE)[1, ], ]
 ```
 
-MOST DISSIMILAR PAIR
-```{r, warning=FALSE}
-data3[
-  which(gower_mat3 == max(gower_mat3[gower_mat3 != max(gower_mat3)]),
-        arr.ind = TRUE)[1, ], ]
+### Most dissimilar pair
+```{r, warning = FALSE}
+data3[which(gower_mat3 == max(gower_mat3[gower_mat3 != max(gower_mat3)]),
+            arr.ind = TRUE)[1, ], ]
 ```
 
-FINDING NUMBER OF CLUSTERS 
-```{r, warning=FALSE}
+### Finding number of clusters
+```{r, warning = FALSE}
 sil_width3 <- c(NA)
 
-for(i in 2:10){
-  
+for (i in 2:10) {
   pam_fit3 <- pam(gower_dist3,
-                 diss = TRUE,
-                 k = i)
+                  diss = TRUE,
+                  k = i)
   
   sil_width3[i] <- pam_fit3$silinfo$avg.width
   
 }
 ```
 
-```{r, warning=FALSE}
+```{r, warning = FALSE}
 plot(1:10, sil_width3,
      xlab = "Number of clusters",
      ylab = "Silhouette Width")
 lines(1:10, sil_width3)
 ```
+
 By silhouette method we can choose 4 clusters.
 
-CLUSTER SUMMARY
-```{r, warning=FALSE}
+### Cluster summary
+```{r, warning = FALSE}
 pam_fit3 <- pam(gower_dist3, diss = TRUE, k = 3)
 
 pam_results3 <- data3 %>%
@@ -336,16 +355,16 @@ pam_results3 <- data3 %>%
 
 pam_results3$the_summary
 ```
-We can interpret from the cluster summary that 3 types of customers here are : 
+We can interpret from the cluster summary that 3 types of customers here are: 
 
-### 1. Cluster 1 : Couple or Not Single people | More post graduates | Higher than average income | Highest Buyer of Wine & Meat | Gold purchase also above avg | Overall Purchase and Amount Spent also Highest 
+* Cluster 1: Couple or Not Single people | More Post Graduates | Higher than Avg Income | Highest Buyer of Wine & Meat | Gold Purchase also Above Avg | Overall Purchase and Amount Spent also Highest 
 
-### 2. Cluster 2 : Singles | Post Graduates | Average Income | Below Avg Amount Spent | Greater Deal Purchases than cluster one customers 
+* Cluster 2: Singles | Post Graduates | Avg Income | Below Avg Amount Spent | Greater Deal Purchases than Cluster One Customers 
 
-### 3. Cluster 3 : Couples | Mostly Post Graduates (But also includes relatively higher number of Undergrads compared to other clusters) | Below Avg Income | Low Amount Spent | More Deal focused Purchases | Would prefer essentials over lesuire (Gold and Sweets)
+* Cluster 3: Couples | Mostly Post Graduates (But also includes relatively higher number of Undergrads compared to other clusters) | Below Avg Income | Low Amount Spent | More Deal focused Purchases | Would prefer essentials over leisure (Gold and Sweets)
 
-VISUALISING CLUSTERS
-```{r, warning=FALSE}
+### Visualizing cluster
+```{r, warning = FALSE}
 tsne_obj3 <- Rtsne(gower_dist3, is_distance = TRUE)
 
 tsne_data3 <- tsne_obj3$Y %>%
@@ -357,15 +376,11 @@ tsne_data3 <- tsne_obj3$Y %>%
 ggplot(aes(x = X, y = Y), data = tsne_data3) +
   geom_point(aes(color = cluster))
 ```
-# General Conclusions : 
 
-## 1. New & Old Customers with Avg Income and fairly avg amount spent should be focused on more, Better advertising and deals should be provided to them.
+# Conclusion
 
-## 2. If a new Non discounted expensive item will be up for sale ads should be targeted better to customers with high spending nature & income.
-
-## 3. Customers with low spending natures and low incomes should be targeted with flash deals and discounts on essentials like fish, fruits & meat to keep them connected with the company.
-
-## 4. Customers tend to spend & purchase more on wine and meat so this products can be worked upon (Like more deals, better more variable products etc) to benefit the company.
-
-## 5. Senior Customers should be connected with company in some or other ways like memberships or specific deals to them this will increase their relationship with company.
-
+1. New and old customers with avg income and fairly avg amount spent should be more focused on, provide better advertising and deals to them.
+2. If a new non-discounted expensive item will be up for sale, ads should be targeted better to customers with high spending nature and income.
+3. Customers with low spending natures and low incomes should be targeted with flash deals and discounts on essentials like fish, fruits, and meat to keep them engaged with the company.
+4. Customers tend to spend and purchase more on wine and meat so this products can be worked upon such as more deals and more variability on the product to benefit the company.
+5. Senior customers should be engaged with the company in other ways such as memberships or specific deals, this will increase improve relationship with company.
