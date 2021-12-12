@@ -102,6 +102,15 @@ data$Num_Purchases_made <-
 data <- data[c(1, 30, 3, 4, 5, 33, 32, 9, 34, 35, 16, 20)]
 ```
 
+<<<<<<< Updated upstream
+=======
+9. Thus, we are left with 12 variables that can be used to create the distance matrix.
+```{r, warning = FALSE}
+data <- data[c(1, 30, 3, 4, 5, 33, 32, 9, 34, 35, 16, 20)]
+data <- data[data$Income<4e05,]
+```
+
+>>>>>>> Stashed changes
 # Exploratory Data Analysis
 ## Corrgram 
 
@@ -273,6 +282,7 @@ data2$Marital_Status <- as.numeric(data2$Marital_Status)
 
 data_new <- read.csv2("../data/marketing_campaign.csv", sep = "\t")
 data_new <- na.omit(data_new)
+data_new <- data_new[data_new$Income<4e05,]
 
 data3 <- data2
 data3$AmtWines <- data_new$MntWines
