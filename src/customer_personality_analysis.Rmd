@@ -100,17 +100,9 @@ data$Num_Purchases_made <-
 8. Thus, we are left with 12 variables that can be used to create the distance matrix.
 ```{r, warning = FALSE}
 data <- data[c(1, 30, 3, 4, 5, 33, 32, 9, 34, 35, 16, 20)]
-```
-
-<<<<<<< Updated upstream
-=======
-9. Thus, we are left with 12 variables that can be used to create the distance matrix.
-```{r, warning = FALSE}
-data <- data[c(1, 30, 3, 4, 5, 33, 32, 9, 34, 35, 16, 20)]
 data <- data[data$Income<4e05,]
 ```
 
->>>>>>> Stashed changes
 # Exploratory Data Analysis
 ## Corrgram 
 
